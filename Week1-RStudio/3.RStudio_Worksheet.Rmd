@@ -1,6 +1,6 @@
 ---
 title: '3\. Worksheet: Basic R'
-author: "Student Name; Z620: Quantitative Biodiversity, Indiana University"
+author: "Yongsoo Choi; Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin=2.54cm
@@ -49,9 +49,9 @@ In the R code chunk below, please provide the code to:
 3) set your working directory to your '3.RStudio' folder. 
 
 ```{r}
-
-
-
+rm(list = ls())
+getwd()
+setwd("/cloud/project/QB2025_Choi/Week1-RStudio")
 ```
 
 ## 3) USING R AS A CALCULATOR
@@ -65,10 +65,10 @@ Feel free to reference the **1. Introduction to version control and computing to
 4) the log (base e) of your favorite number.
 
 ```{r}
-
-
-
-
+5^3
+pi * 2^2
+1
+log(9)
 ```
 
 ## 4) WORKING WITH VECTORS
