@@ -1,6 +1,6 @@
 ---
 title: '3\. Worksheet: Basic R'
-author: "Student Name; Z620: Quantitative Biodiversity, Indiana University"
+author: "Yongsoo Choi; Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin=2.54cm
@@ -49,9 +49,9 @@ In the R code chunk below, please provide the code to:
 3) set your working directory to your '3.RStudio' folder. 
 
 ```{r}
-
-
-
+rm(list = ls())
+getwd()
+setwd("/cloud/project/QB2025_Choi/Week1-RStudio")
 ```
 
 ## 3) USING R AS A CALCULATOR
@@ -65,10 +65,10 @@ Feel free to reference the **1. Introduction to version control and computing to
 4) the log (base e) of your favorite number.
 
 ```{r}
-
-
-
-
+5^3
+pi * 2^2
+1
+log(9)
 ```
 
 ## 4) WORKING WITH VECTORS
@@ -83,9 +83,9 @@ In the R-code chunk below, do the following:
 3) Add `x` and `w` and divide by 15.
 
 ```{r}
-
-
-
+x <- c(1, 2, 3, 4, 5)
+w <- x * 14
+(x + w)/15
 ```
 
 Now, do the following: 
@@ -94,9 +94,10 @@ Now, do the following:
 3) Use the combine function to create one more vector, `d` that consists of any three elements from `w` and any four elements of `k`.
 
 ```{r}
-
-
-
+k <- c(2, 2, 2, 2, 2)
+k * x
+d <- c(w[1:3], k[1:4])
+d
 ```
 
 ### Summary Statistics of Vectors
@@ -105,19 +106,14 @@ In the R-code chunk below, calculate the **summary statistics** (i.e., maximum, 
 
 ```{r}
 v <- c(16.4, 16.0, 10.1, 16.8, 20.5, NA, 20.2, 13.1, 24.8, 20.2, 25.0, 20.5, 30.5, 31.4, 27.1)
-
-
-
-
-
-
-
-
-
-
-
-
-
+v <-na.omit(v)
+max(v)
+min(v)
+sum(v)
+mean(v)
+median(v)
+var(v)
+sd(v)
 ```
 
 ## 5) WORKING WITH MATRICES
@@ -128,18 +124,17 @@ Both columns should consist of random numbers.
 Make the mean of the first column equal to 8 with a standard deviation of 2 and the mean of the second column equal to 25 with a standard deviation of 10.
 
 ```{r}
-
-
-
-
-
+j <- c(rnorm(5, mean = 8, sd = 2))
+z <- c(rnorm(5, mean = 25, sd = 10))
+cbind(j, z)
+matrix(c(j, z), nrow = 5, ncol = 2)
 ```
 
 ***Question 1***: What does the `rnorm` function do? 
 What do the arguments in this function specify? 
 Remember to use `help()` or type `?rnorm`.
 
-> Answer 1:
+> Answer 1: it generates random number which follow normal distribution with parameters (mean and sd) that I put. 
 
 
 In the R code chunk below, do the following: 
@@ -148,15 +143,15 @@ In the R code chunk below, do the following:
 3) Determine the dimensions of the transposed matrix.
 
 ```{r}
-
-
-
+m <- read.table("data/matrix.txt", sep ="\t", header = TRUE)
+n <- t(m)
+dim(n)
 ```
 
 
 ***Question 2***: What are the dimensions of the matrix you just transposed?
 
-> Answer 2:
+> Answer 2:how many rows and cols are in the matrix.
 
 
 ###Indexing a Matrix
@@ -166,8 +161,9 @@ In the R code chunk below, do the following:
 2) Remove the last row of matrix `m`.
 
 ```{r}
-
-
+m[c(1:2, 4:9), ]
+m <- m[1:8, ]
+m
 ```
 
 ## 6) BASIC DATA VISUALIZATION AND STATISTICAL ANALYSIS
@@ -178,8 +174,8 @@ In the R code chunk below, do the following:
 2) Display the structure of this data set.
 
 ```{r}
-
-
+meso <- read.table("data/zoop_nuts.txt", sep = "\t", header = TRUE)
+str(meso)
 ```
 
 ### Correlation
@@ -190,14 +186,15 @@ In the R-code chunk below, do the following:
 3) Conduct a simple **Pearson's correlation** analysis.
 
 ```{r}
-
-
+meso.num <- meso[ ,3:8]
+pairs(meso.num)
+cor1 <- cor(meso.num)
 ```
 
 
 ***Question 3***: Describe some of the general features based on the visualization and correlation analysis above?
 
-> Answer 3:
+> Answer 3: It compares each measured value to the others to show how correlated they are. By doing this, we can easily recognize which values are highly correlated at once. 
 
 
 In the R code chunk below, do the following:
@@ -206,9 +203,12 @@ In the R code chunk below, do the following:
 3) Use the print command from the handout to see the results of each correlation analysis.
 
 ```{r}
-
-
-
+install.packages("psych", repos="https://cran.rstudio.com")
+require("psych")
+cor2 <- corr.test(meso.num, method = "pearson", adjust = "BH")
+print(cor2, digits = 3)
+cor3 <- corr.test(meso.num, method = "kendall", adjust = "BH")
+print(cor3, digits = 3)
 ```
 
 ***Question 4***: 
@@ -218,7 +218,8 @@ When should one use non-parametric methods instead of parametric methods?
 With the Pearson's method, is there evidence for false discovery rate due to multiple comparisons? 
 Why is false discovery rate important?
 
-> Answer 4: 
+> Answer 4: I think these data is quite robust whether I used parametric or nonparametric methods, but some values show different significance in terms of p-value .005 (e.g. TP vs. SRP). As I know, if the values in data cannot satisfy equal variance test or normalization test, we should use non parametric test, which means we need a good-quality data for performing parametric tests. Next, for FDR, our data seems fine with it (I mean comparing those p-values with .005, there is no p-values which became higher than .005 after BH correction in our data here), but the p-values are definitely higher after BH correction, so I think we should do this FDR correction to prevent concluding false positive. When testing multiple hypotheses simultaneously, the risk of false-positive conclusions increases with the number of comparisons. Therefore, it is necessary to adjust p-values to reduce the false discovery rate.
+
 
 ### Linear Regression
 
@@ -228,23 +229,25 @@ In the R code chunk below, do the following:
 3) Produce a plot of this regression analysis including the following: categorically labeled points, the predicted regression line with 95% confidence intervals, and the appropriate axis labels.
 
 ```{r}
-
-
-
-
-
-
-
+fitreg <- lm(ZP ~ TN, data = meso)
+summary(fitreg)
+plot(meso$TN, meso$ZP, ylim = c(0, 10), xlim = c(500, 5000), 
+     xlab = expression(paste("Total Nitrogen (", mu, "g/L)")),
+     ylab = "Zooplankton Biomass (mg)",  las = 1)
+text(meso$TN, meso$ZP, meso$NUTS, pos = 3, cex = 0.8)
+newTN <- seq(min(meso$TN), max(meso$TN), 10)
+regline <- predict(fitreg, newdata = data.frame(TN = newTN))
+lines(newTN, regline)
+conf95 <- predict(fitreg, newdata = data.frame(TN = newTN),
+                  interval = c("confidence"), level = 0.95, type = "response")
+matlines(newTN, conf95[, c("lwr", "upr")], type = "l", lty = 2, lwd = 1, col = "black")
 ```
+
+
 
 ***Question 5***: Interpret the results from the regression model
 
-> Answer 5:
-
-
-```{r}
-
-```
+> Answer 5: The zooplankton biomass has significant poitive effects on the concentration of nitrogen with the p-value of 1.911e-05. And this regresion model explains about 55% of variability of nitrogen concentration by zooplankton biomass, which I believe not very high. 
 
 ### Analysis of Variance (ANOVA)
 
@@ -256,13 +259,23 @@ Using the R code chunk below, do the following:
 
 
 ```{r}
-
-
-
-
-
-
-
+NUTS <- factor(meso$NUTS, levels = c('L', 'M', 'H'))
+zp.means <- tapply(meso$ZP, NUTS, mean)
+sem <- function(x){
+  sd(na.omit(x))/sqrt(length(na.omit(x)))
+}
+zp.sem <- tapply(meso$ZP, NUTS, sem)
+bp <- barplot(zp.means, ylim = c(0, round(max(meso$ZP), digits = 0)),
+              pch = 15, cex = 1.25, las = 1, cex.lab = 1.4, cex.axis = 1.25,
+              xlab = "nutrient supply",
+              ylab = "zooplankton biomass (mg/L)",
+              names.arg = c("low", "medium", "high"))
+arrows(x0 = bp, y0 = zp.means, y1 = zp.means - zp.sem, angle = 90,
+       length = 0.1, lwd = 1)
+arrows(x0 = bp, y0 = zp.means, y1 = zp.means + zp.sem, angle = 90,
+       length = 0.1, lwd = 1)
+fitanova <- aov(ZP ~ NUTS, data = meso)
+summary(fitanova)
 ```
 
 ## SYNTHESIS: SITE-BY-SPECIES MATRIX
@@ -293,10 +306,31 @@ The remaining columns of data refer to the biomass (µg/L) of different zooplank
 Describe what you learned below in the "Answer" section and include appropriate code in the R chunk.
 
 ```{r}
+sbs <- read.table("data/zoops.txt", sep = "\t", header = TRUE)
+sbs2 <- sbs[ ,c(3:11)]
+sbs2
+boxplot(sbs2, 
+        xlab = "Species",
+        ylab = "zooplankton biomass")
 
 
+biomass.total <- colSums(sbs2)
+biomass.total
+sbs3 <- rbind(sbs2, biomass.total)
+sbs4 <- t(sbs3)
+barplot(sbs4[,25], 
+        xlab = "Species",
+        ylab = "Total biomass")
 
-
+stack <- aggregate(cbind(CAL, DIAP, CYCL, BOSM, SIMO, CERI, NAUP) ~ NUTS, data = sbs, FUN = sum)
+stacked_data <- as.matrix(stack[, -1])
+barplot(
+  t(stacked_data),                     ,                     
+  col = rainbow(ncol(stacked_data)),  
+  xlab = "Nutrient supply",
+  ylab = "Zooplankton biomass",
+  names.arg = c("low", "medium", "high"))
+legend("topright", legend = colnames(stacked_data), fill = rainbow(ncol(stacked_data)), cex = 0.5, ncol = 7)
 ```
 
 ## SUBMITTING YOUR WORKSHEET
