@@ -1,6 +1,6 @@
 ---
 title: '5\. Worksheet: Alpha Diversity'
-author: "Student Name; Z620: Quantitative Biodiversity, Indiana University"
+author: "Yongsoo Choi; Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin = 2.54cm
@@ -35,10 +35,11 @@ In the R code chunk below, please provide the code to:
 4) Load the `vegan` R package (be sure to install first if you have not already).
 
 ```{r}
-
-
-
-
+rm(list = ls())
+getwd()
+setwd("/cloud/project/QB2025_Choi/Week2-Alpha/")
+install.packages("vegan")
+require("vegan")
 ```
 
 ## 2) LOADING DATA
@@ -48,8 +49,8 @@ In the R code chunk below, do the following:
 2) Display the structure of the dataset (if the structure is long, use the `max.level = 0` argument to show the basic information).
 
 ```{r}
-
-
+data(BCI)
+print(BCI, max.level = 0)
 ```
 
 ## 3) SPECIES RICHNESS
@@ -67,18 +68,18 @@ In the R code chunk below, do the following:
 3. Compare the output of your function to the output of the `specnumber()` function in `vegan`.
 
 ```{r}
-
-# S.obs <- function(   ){
-#   rowSums(     ) * 
-#   }
-
+S.obs <- function(x = ""){
+   rowSums(x > 0) * 1 
+}
+S.obs(BCI)
+specnumber(BCI) #they work same
 ```
 
 ***Question 1***: Does `specnumber()` from `vegan` return the same value for observed richness in `site1` as our function `S.obs`?
 What is the species richness of the first four sites (i.e., rows) of the BCI matrix?
 
 > ***Answer 1***:
->
+> S.obs and specnumber() work same. The richness of the first four sites are 93, 84, 90, and 94. 
 
 
 ### Coverage: How well did you sample your site?
@@ -90,8 +91,10 @@ In the R code chunk below, do the following:
 2. Use that function to calculate coverage for all sites in the BCI matrix.
 
 ```{r}
-
-
+C <- function(x = ""){
+  1 - (rowSums(x == 1) / rowSums(x))
+}
+C(BCI)
 ```
   
 ***Question 2***: Answer the following questions about coverage:
@@ -102,16 +105,27 @@ c.  What portion of taxa in `site1` was represented by singletons?
 d.  Make some observations about coverage at the BCI plots.
 
 > ***Answer 2a***:
->
+> 0.8705882 to 0.9468504
+
+```{r}
+C1 <- C(BCI)
+range(C1)
+```
 
 > ***Answer 2b***:
->
+> Then. the coverages will be 0 and it means every species only occured once. There are so many rare species there. 
 
 > ***Answer 2c***: 
->
+> 0.06919643
+
+```{r}
+C2 <- as.matrix(C1)
+1 - C2[1, ]
+```
+
 
 > ***Answer 2d***: 
->
+> I think coverage for BCI plots are pretty high. 
 
 
 ### Estimated richness
@@ -129,12 +143,11 @@ In the R code chunk below, do the following:
 5. Calculate coverage of that site
 
 ```{r}
-
-
-
-
-
-
+soilbac <- read.table("data/soilbac.txt", sep = "\t", header = TRUE, row.names = 1)
+soilbac.t <- as.data.frame(t(soilbac))
+soilbac1 <- soilbac.t[1, ]
+S.obs(soilbac1)
+C(soilbac1)
 ```
 
 ***Question 3***: Answer the following questions about the soil bacterial dataset. 
@@ -144,13 +157,13 @@ b.  What is the observed richness of `soilbac1`?
 c.  How does coverage compare between the BCI sample (`site1`) and the KBS sample (`soilbac1`)?
 
 > ***Answer 3a***:
->
+> 2119
 
 > ***Answer 3b***: 
->
+> 1074
 
 > ***Answer 3c***: 
->
+> coverage of BCI sample is higher 
 
 
 ### Richness estimators
@@ -166,6 +179,74 @@ In the R code chunk below, do the following:
 4. Use these functions to estimate richness at `site1` and `soilbac1`. 
 
 ```{r}
+S.chao1 <- function(x = ""){
+  S.obs(x) + (sum(x == 1)^2) / (2 * sum(x == 2))
+}
+
+S.chao2 <- function(site = "", SbyS = ""){
+  SbyS = as.data.frame(SbyS)
+  x = SbyS[site, ]
+  SbyS.pa <- (SbyS > 0) * 1
+  Q1 = sum(colSums(SbyS.pa) == 1)
+  Q2 = sum(colSums(SbyS.pa) == 2)
+  S.chao2 = S.obs(x) + (Q1^2)/(2 * Q2)
+  return(S.chao2)
+}
+
+S.ace <- function(x = "", thresh = 10){
+  x <- x[x>0]
+  S.abund <- length(which(x > thresh))
+  S.rare <- length(which(x <= thresh))
+  singlt <- length(which(x == 1))
+  N.rare <- sum(x[which(x <= thresh)])
+  C.ace <- 1 - (singlt/N.rare)
+  i <- c(1:thresh)
+  count <- function(i, y){
+    length(y[y == 1])
+  }
+  a.1 <- sapply(i, count, x)
+  f.1 <- (i * (i - 1)) * a.1
+  G.ace <- (S.rare/C.ace)*(sum(f.1)/(N.rare*(N.rare-1)))
+  S.ace <- S.abund + (S.rare/C.ace) + (singlt/C.ace) * max(G.ace, 0)
+  return(S.ace)
+}
+
+
+
+
+S.ace <- function(x = "", thresh = 10){
+
+  x <- x[x>0]
+
+  S.abund <- length(which(x > thresh))
+
+  S.rare <- length(which(x <= thresh))
+
+  singlt <- length(which(x == 1))
+
+  N.rare <- sum(x[which(x <= thresh)])
+
+  C.ace <- 1 - (singlt / N.rare)
+
+  i <- c(1:thresh)
+
+  count <- function(i, y){
+
+    length(y[y == i])
+
+  }
+
+  a.1 <- sapply(i, count, x)
+
+  f.1 <- (i * (i - 1)) * a.1
+
+  G.ace <- (S.rare/C.ace)*(sum(f.1)/(N.rare*(N.rare-1)))
+
+  S.ace <- S.abund + (S.rare/C.ace) + (singlt/C.ace) * max(G.ace,0)
+
+  return(S.ace)
+
+}
 
 
 
@@ -174,6 +255,23 @@ In the R code chunk below, do the following:
 
 
 
+
+
+
+
+
+
+
+
+
+S.chao1(BCI[1, ])
+S.chao2(1, BCI)
+S.ace(BCI[1, ])
+
+
+S.chao1(soilbac1)
+S.chao2(1, soilbac.t)
+S.ace(soilbac1)
 ```
 
 ***Question 4***: 
@@ -201,12 +299,12 @@ In the R code chunk below, please do the following:
 
 
 ```{r}
-
-
-
-
-
-
+soilbac.s <- S.obs(soilbac.t)
+min.N <- min(rowSums(soilbac.t))
+S.rarefy <- rarefy(x = soilbac.t, sample = min.N, se = TRUE)
+rarecurve(x = soilbac.t, step = 20, col = "blue", cex = 0.6, las = 1)
+abline(0, 1, col = "red")
+text(1500, 1500, "1:1", pos = 2, col = "red")
 ```
 
 
@@ -228,13 +326,18 @@ In the R code chunk below, do the following:
 4. Return the ranked vector
 
 ```{r}
+RAC <- function(x = ""){
+  x.ab = x[x > 0]
+  x.ab.ranked = x.ab[order(x.ab, decreasing = TRUE)]
+  as.data.frame(lapply(x.ab.ranked, unlist))
+  return(x.ab.ranked)
+}
 
-
-
-
-
-
-
+site1 <- BCI[1, ]
+rac <- RAC(x = site1)
+print(rac)
+ranks <- as.vector(seq(1, length(rac)))
+print(ranks)
 ```
 
 Now, let us examine the RAC for `site1` of the BCI data set.
@@ -246,12 +349,16 @@ In the R code chunk below, do the following:
 2. Label the x-axis "Rank in abundance" and the y-axis "log(abundance)"
 
 ```{r}
-
-
-
-
-
-
+plot.new()
+opar <- par(no.readonly = TRUE)
+par(mar = c(5.1, 5.1, 4.1, 2.1))
+plot(ranks, log(rac), type = 'p', axes = F,
+     xlab = "Rank in abundance", ylab = "Abundance",
+     las = 1, cex.lab = 1.4, cex.axis = 1.25)
+box()
+axis(side = 1, labels = T, cex.axis = 1.25)
+axis(side = 2, las = 1, cex.axis = 1.25, 
+     labels = c(1,2,5,10,20), at = log(c(1, 2, 5, 10, 20)))
 ```
 
 ***Question 5***: What effect does visualizing species abundance data on a log-scaled axis have on how we interpret evenness in the RAC?
@@ -270,14 +377,15 @@ In the R code chunk below, do the following:
 2. Calculate $E_{1/D}$ for `site1`.
 
 ```{r}
+SimpE <- function(x = ""){
+  S <- S.obs(x)
+  x = as.data.frame(x)
+  D <- diversity(x, "inv")
+  E <- (D)/S
+  return(E)
+}
 
-
-
-
-
-
-
-
+SimpE(site1)
 ```
 
 ### Smith and Wilson's evenness index ($E_{var}$)
@@ -291,12 +399,12 @@ In the R code chunk below, please do the following:
 3. Compare $E_{1/D}$ and $E_{var}$.
 
 ```{r}
+Evar <- function(x = ""){
+  x <- as.vector(x[x > 0])
+  1 - (2/pi) * atan(var(log(x)))
+}
 
-
-
-
-
-
+Evar(site1)
 ```
 
 ***Question 6***: Compare estimates of evenness for `site1` of BCI using $E_{1/D}$ and $E_{var}$.
@@ -320,15 +428,20 @@ In the R code chunk below, please do the following:
 2. Compare this estimate with the output of `vegan`'s diversity function using method = "shannon".
 
 ```{r}
+ShanH <- function(x = ""){
+  H = 0
+  for (n_i in x){
+    if (n_i > 0) {
+      p = n_i / sum(x)
+      H = H - p*log(p)
+    }
+  }
+  return(H)
+}
 
 
-
-
-
-
-
-
-
+ShanH(site1)
+diversity(site1, index = "shannon")
 ```
 
 ### Simpson's diversity (or dominance)
@@ -342,10 +455,19 @@ In the R code chunk below, please do the following:
 2. Compare this estimate with the output of `vegan's` diversity function using method = "simp".
 
 ```{r}
+SimpD <- function(x = ""){
+  D = 0
+  N = sum(x)
+  for (n_i in x){
+    D = D + (n_i^2)/(N^2)
+  }
+  return(D)
+}
 
 
-
-
+D <- SimpD(site1)
+D.inv <- 1 / D
+1 - D
 
 
 
@@ -471,6 +593,16 @@ Load that dataset.
 How many sites are there?
 How many species are there in the entire site-by-species matrix?
 Any other interesting observations based on what you learned this week?
+
+```{r}
+fish_data <- read.csv("/cloud/project/QB2025_Choi/Fish_Dataset.csv")
+num_sites <- length(unique(fish_data$SiteID))
+print(num_sites)
+species <- fish_data[ ,23:658]
+species_list <- colnames(species)
+length(species_list)
+```
+
 
 ## SUBMITTING YOUR ASSIGNMENT
 Use Knitr to create a PDF of your completed 5.AlphaDiversity_Worksheet.Rmd document, push it to GitHub, and create a pull request.
