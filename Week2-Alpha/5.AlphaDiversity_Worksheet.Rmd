@@ -486,8 +486,8 @@ plot(RACresults, las = 1, cex.lab = 1.4, cex.axis = 1.25)
 a) Based on the output of `radfit()` and plotting above, discuss which model best fits our rank-abundance curve for `site1`?
 b) Can we make any inferences about the forces, processes, and/or mechanisms influencing the structure of our system, e.g., an ecological community?
 
-> ***Answer 9a***: Based on our graph, I think Mandelbrot model is the best fit for our rnaked-abundance curve. 
-> ***Answer 9b***: I think since the Manderbroy model best fit our data, it means that species abundances follow a combination of competitive dominance and stochastic processes.
+> ***Answer 9a***: Based on our graph, I think Mandelbrot model is the best fit for our ranked-abundance curve. 
+> ***Answer 9b***: I think since the Manderbrot model best fit our data, it means that species abundances follow a combination of competitive dominance and stochastic processes.
 
 
 ***Question 10***: Answer the following questions about the preemption model:
