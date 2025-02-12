@@ -221,7 +221,7 @@ par(mar = c(2,2,2,2))
 plot(doubs.varpart)
 text(1, 0.25, "Space")
 text(0, 0.25, "Env")
-text("Variation Partitioning of\nDoubs Fish Diversity", side = 3, line = -3)
+mtext("Variation Partitioning of\nDoubs Fish Diversity", side = 3, line = -3)
 ```
 
 ***Question 4***: Interpret the variation partitioning results.   
@@ -244,7 +244,7 @@ fish.team.db <- vegdist(only.species, method = "bray", upper = TRUE, diag = TRUE
 fish.team.dbrda <- dbrda(fish.team.db ~ ., as.data.frame(fish.team.env))
 ordiplot(fish.team.dbrda)
 ```
-> Here, we used dbRDA plot to show which environmental factor has a strong effect on fish diversity. Before this week, we divide our latitude data into 5 groups, but here if we divided them into 5 groups, we thought 5 groups are too little to do ordination analysis. Thus, here we used original data which have specific latitude and longgitude information. For the graph we obtained, I think the pH and water temperature are the most significant environmental factors.
+>  ***Answer synthesis***: Here, we used dbRDA plot to show which environmental factor has a strong effect on fish diversity. Before this week, we divide our latitude data into 5 groups, but here if we divided them into 5 groups, we thought 5 groups are too little to do ordination analysis. Thus, here we used original data which have specific latitude and longgitude information. For the graph we obtained, I think the pH and water temperature are the most significant environmental factors.
 > Next, we tried to confirm which environmental factor has the lowest AIC value. However, when we tried to run "ordiR2step()" to get the AIC value, the r studio kept crashing. Thus, the code below is what we tried to run but it did not work. I think 5 groups are too small and using the whole latitude data is too large. I think we should discuss this further and have to find a good criterion for dividing our spatial dataset. 
 
 
