@@ -1,0 +1,296 @@
+---
+title: '7\. Worksheet: Diversity Synthesis'
+author: "Yongsoo Choi; Z620: Quantitative Biodiversity, Indiana University"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+geometry: margin=2.54cm
+---
+  
+## OVERVIEW
+
+In this worksheet, you will conduct exercises that reinforce fundamental concepts of biodiversity.
+First, you will construct a site-by-species matrix by sampling confectionery taxa from a source community.
+Second, you will make a preference-profile matrix, reflecting each student's favorite confectionery taxa. 
+With this primary data structure, you will then answer questions and generate figures using tools from previous weeks, along with wrangling techniques that we learned about in class. 
+
+## Directions:
+1. In the Markdown version of this document in your cloned repo, change "Student Name" on line 3 (above) to your name.
+2. Complete as much of the worksheet as possible during class.
+3. Refer to previous handouts to help with developing of questions and writing of code.
+4. Answer questions in the worksheet.
+Space for your answer is provided in this document and indicated by the ">" character.
+If you need a second paragraph be sure to start the first line with ">".
+You should notice that the answer is highlighted in green by RStudio (color may vary if you changed the editor theme).
+5. Before you leave the classroom, **push** this file to your GitHub repo.
+6. For the assignment portion of the worksheet, follow the directions at the bottom of this file. 
+7. When you are done, **Knit** the text and code into a PDF file.
+8. After Knitting, submit the completed exercise by creating a **pull request** via GitHub.
+Your pull request should include this file `7.DiversitySynthesis_Worskheet.Rmd` and the PDF output of `Knitr` (`DiversitySynthesis_Worskheet.pdf`).
+
+## QUANTITATIVE CONFECTIONOLOGY
+
+We will construct a site-by-species matrix using confectionery taxa (i.e, jelly beans). 
+The instructors have created a **source community** with known abundance (*N*) and richness (*S*).
+Like a real biological community, the species abundances are unevenly distributed such that a few jelly bean types are common while most are rare. 
+Each student will sample the source community and bin their jelly beans into operational taxonomic units (OTUs).
+
+## SAMPLING PROTOCOL: SITE-BY-SPECIES MATRIX
+
+1. From the well-mixed source community, each student should take one Dixie Cup full of individuals.
+
+2. At your desk, sort the jelly beans into different types (i.e., OTUs), and quantify the abundance of each OTU.  
+
+3. Working with other students, merge data into a site-by-species matrix with dimensions equal to the number of students (rows) and taxa (columns)
+
+4. Create a worksheet (e.g., Google sheet) and share the site-by-species matrix with the class. 
+
+```{r, echo = FALSE, fig.align = 'center', out.width = "80%", fig.cap = "\\textbf{Left}: taxonomic key, \\textbf{Top right}: rank abundance distribution, \\textbf{Bottom right}: source community"}
+knitr::include_graphics("data/jelly.png")
+```
+
+## SAMPLING PROTOCOL: PREFERENCE-PROFILE MATRIX
+
+1. With your individual sample only, each student should choose their top 5-10 preferred taxa based on flavor, color, sheen, etc.
+
+2. Working with other students, merge data into preference-profile incidence matrix where 1 = preferred and 0 = non-preferred taxa.
+
+3. Create a worksheet (e.g., Google sheet) and share the preference-profile matrix with the class. 
+
+### 1) R SETUP
+
+In the R code chunk below, please provide the code to: 
+1) Clear your R environment,
+2) Print your current working directory,
+3) Set your working directory to your `Week5-Confection/` folder, and
+4) Load the `vegan` R package (be sure to install first if you have not already).
+
+```{r}
+rm(list=ls())
+getwd()
+library(vegan)
+```
+
+## DATA ANALYSIS
+
+**Question 1:** In the space below, generate a rarefaction plot for all samples of the source community. 
+Based on these results, discuss how individual vs. collective sampling efforts capture the diversity of the source community.
+
+```{r}
+dat <- read.csv(file = "./data/SbyS.csv", header = TRUE, row.names = 1)
+min.N <- min(rowSums(dat))
+S.rarefy <- rarefy(x = dat, sample = min.N, se = TRUE)
+rarecurve(x = dat, step = 20, col = "blue", cex = 0.6, las = 1)
+abline(0, 1, col = "red")
+text(1500, 1500, "1:1", pos = 2, col = "red")
+```
+
+> ***Answer 1***:
+> As we learned at the previous class, we can see the number of species increases as the sample size increases. Additionally, even though all the samples are from the same population, we can see each sample show highly diverse rarefaction curve and speciess richness. Thus, I think collective sampling enable to capture more rare species campared to individual samples. 
+
+
+**Question 2:** Starting with the site-by-species matrix, visualize beta diversity.
+In the code chunk below, conduct principal coordinates analyses (PCoA) using both an abundance- and incidence-based resemblance matrix.
+Plot the sample scores in species space using different colors, symbols, or labels.
+Which "species" are contributing the patterns in the ordinations?
+How does the choice of resemblance matrix affect your interpretation?
+
+```{r, include=FALSE}
+`add.spec.scores.class` <-
+  function(ordi,comm,method="cor.scores",multi=1,Rscale=F,scaling="1") {
+    ordiscores <- scores(ordi,display="sites")
+    n <- ncol(comm)
+    p <- ncol(ordiscores)
+    specscores <- array(NA,dim=c(n,p))
+    rownames(specscores) <- colnames(comm)
+    colnames(specscores) <- colnames(ordiscores)
+    if (method == "cor.scores") {
+      for (i in 1:n) {
+        for (j in 1:p) {specscores[i,j] <- cor(comm[,i],ordiscores[,j],method="pearson")}
+      }
+    }
+    if (method == "wa.scores") {specscores <- wascores(ordiscores,comm)}
+    if (method == "pcoa.scores") {
+      rownames(ordiscores) <- rownames(comm)
+      eigenv <- ordi$eig
+      accounted <- sum(eigenv)
+      tot <- 2*(accounted/ordi$GOF[2])-(accounted/ordi$GOF[1])
+      eigen.var <- eigenv/(nrow(comm)-1)
+      neg <- length(eigenv[eigenv<0])
+      pos <- length(eigenv[eigenv>0])
+      tot <- tot/(nrow(comm)-1)
+      eigen.percen <- 100*eigen.var/tot
+      eigen.cumpercen <- cumsum(eigen.percen)
+      constant <- ((nrow(comm)-1)*tot)^0.25
+      ordiscores <- ordiscores * (nrow(comm)-1)^-0.5 * tot^-0.5 * constant
+      p1 <- min(p, pos)
+      for (i in 1:n) {
+        for (j in 1:p1) {
+          specscores[i,j] <- cor(comm[,i],ordiscores[,j])*sd(comm[,i])/sd(ordiscores[,j])
+          if(is.na(specscores[i,j])) {specscores[i,j]<-0}
+        }
+      }
+      if (Rscale==T && scaling=="2") {
+        percen <- eigen.var/tot
+        percen <- percen^0.5
+        ordiscores <- sweep(ordiscores,2,percen,"/")   
+        specscores <- sweep(specscores,2,percen,"*")
+      }
+      if (Rscale==F) {
+        specscores <- specscores / constant
+        ordiscores <- ordi$points
+      }        
+      ordi$points <- ordiscores
+      ordi$eig <- eigen.var
+      ordi$eig.percen <- eigen.percen
+      ordi$eig.cumpercen <- eigen.cumpercen
+      ordi$eigen.total <- tot
+      ordi$R.constant <- constant
+      ordi$Rscale <- Rscale
+      ordi$scaling <- scaling
+    }
+    specscores <- specscores * multi    
+    ordi$cproj <- specscores
+    return(ordi)
+  }
+```
+
+
+```{r}
+suppressWarnings({
+dat.dj <- vegdist(dat, method = "jaccard", binary = TRUE)
+dat.pcoa <- cmdscale(dat.dj, eig = TRUE, k = 3)
+explainvar1 <- round(dat.pcoa$eig[1] / sum(dat.pcoa$eig), 3) * 100
+explainvar2 <- round(dat.pcoa$eig[2] / sum(dat.pcoa$eig), 3) * 100
+explainvar3 <- round(dat.pcoa$eig[3] / sum(dat.pcoa$eig), 3) * 100
+sum.eig <- sum(explainvar1, explainvar2, explainvar3)
+
+par(mar = c(5, 5, 1, 2) + 0.1)
+plot(dat.pcoa$points[ ,1], dat.pcoa$points[ ,2],
+     xlab = paste("PcoA 1 (", explainvar1, "%)", sep = ""),
+     ylab = paste("PcoA 2 (", explainvar2, "%)", sep = ""),
+     pch = 16, cex = 2.0, type = "n", cex.lab = 1.5,
+     cex.axis = 1.2, axes = FALSE)
+axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+abline(h = 0, v = 0, lty = 3)
+box(lwd = 2)
+points(dat.pcoa$points[ ,1], dat.pcoa$points[ ,2],
+       pch = 19, cex = 3, bg = "gray", col = "gray")
+text(dat.pcoa$points[ ,1], dat.pcoa$points[ ,2],
+     labels = row.names(dat.pcoa$points))
+
+datREL <- dat
+   for(i in 1:nrow(dat)){
+     datREL[i, ] = dat[i, ] / sum(dat[i, ])
+   }
+dat.pcoa <- add.spec.scores.class(dat.pcoa, datREL, method = "pcoa.scores")
+text(dat.pcoa$cproj[ ,1], dat.pcoa$cproj[ ,2],
+     labels = row.names(dat.pcoa$cproj), col = "red")
+
+spe.corr <- add.spec.scores.class(dat.pcoa, datREL, method = "cor.scores")$cproj
+corrcut <- 0.7
+imp.spp <- spe.corr[abs(spe.corr[, 1]) >= corrcut | abs(spe.corr[, 2]) >= corrcut, ]
+print(imp.spp)
+    fit <- envfit(dat.pcoa, datREL, perm = 999)
+    print(fit)
+})
+```
+
+```{R}
+suppressWarnings({
+dat.db <- vegdist(dat, method = "bray", upper = TRUE, diag = TRUE)
+dat.pcoa <- cmdscale(dat.db, eig = TRUE, k = 3)
+explainvar1 <- round(dat.pcoa$eig[1] / sum(dat.pcoa$eig), 3) * 100
+explainvar2 <- round(dat.pcoa$eig[2] / sum(dat.pcoa$eig), 3) * 100
+explainvar3 <- round(dat.pcoa$eig[3] / sum(dat.pcoa$eig), 3) * 100
+sum.eig <- sum(explainvar1, explainvar2, explainvar3)
+
+par(mar = c(5, 5, 1, 2) + 0.1)
+plot(dat.pcoa$points[ ,1], dat.pcoa$points[ ,2],
+     xlab = paste("PcoA 1 (", explainvar1, "%)", sep = ""),
+     ylab = paste("PcoA 2 (", explainvar2, "%)", sep = ""),
+     pch = 16, cex = 2.0, type = "n", cex.lab = 1.5,
+     cex.axis = 1.2, axes = FALSE)
+axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+abline(h = 0, v = 0, lty = 3)
+box(lwd = 2)
+points(dat.pcoa$points[ ,1], dat.pcoa$points[ ,2],
+       pch = 19, cex = 3, bg = "gray", col = "gray")
+text(dat.pcoa$points[ ,1], dat.pcoa$points[ ,2],
+     labels = row.names(dat.pcoa$points))
+
+datREL <- dat
+   for(i in 1:nrow(dat)){
+     datREL[i, ] = dat[i, ] / sum(dat[i, ])
+   }
+dat.pcoa <- add.spec.scores.class(dat.pcoa, datREL,method = "pcoa.scores")
+text(dat.pcoa$cproj[ ,1], dat.pcoa$cproj[ ,2],
+     labels = row.names(dat.pcoa$cproj), col = "red")
+spe.corr <- add.spec.scores.class(dat.pcoa, datREL, method = "cor.scores")$cproj
+corrcut <- 0.7
+imp.spp <- spe.corr[abs(spe.corr[, 1]) >= corrcut | abs(spe.corr[, 2]) >= corrcut, ]
+print(imp.spp)
+
+    fit <- envfit(dat.pcoa, datREL, perm = 999)
+    print(fit)
+})
+```
+
+> ***Answer 2***:
+> PCoA analysis based on bundance-based matrix and incidence-based matrix show very different results. However, when I identified influential species by cutoff of 0.7, these especies are highly overlapped. In incidence-based matrix, the influential species are Cantaloque, Cinnamon, and Red.Apple and in abundance-baed matrix, these are Cantaloque, Cinnamon, Red.Apple and Licorice. Based on these reaults, although I think both matrices provide very informative information, I'll choose the abundance-based matrix which can capture more significant species when I canducted permutatin test. 
+
+
+**Question 3** Using the preference-profile matrix, determine the most popular jelly bean in the class using a control structure (e.g., for loop, if statement, function, etc).
+
+```{r}
+pref <- read.csv("./data/pref.csv",header = TRUE, row.names = 1)
+pref1 <- colSums(pref, na.rm = TRUE)
+max_votes <- 0
+popular <- c()
+
+for (i in names(pref1)) {
+  if (pref1[i] > max_votes) {
+    max_votes <- pref1[i]
+    popular <- i  
+  } else if (pref1[i] == max_votes) {
+    popular <- c(popular, i) 
+  }
+}
+
+print(popular)
+```
+
+> ***Answer 3***:
+> Berry.Blue is the most popular jelly bean in the class room.
+
+
+**Question 4**
+In the code chunk below, identify the student in QB who has a preference-profile that is most like yours. 
+Quantitatively, how similar are you to your "jelly buddy"?
+Visualize the preference profiles of the class by creating a cluster dendogram.
+Label each terminal node (a.k.a., tip or "leaf") with the student's name or initials.
+Make some observations about the preference-profiles of the class. 
+
+
+```{r}
+pref <- na.omit(pref)
+pref.db <- vegdist(pref, method = "bray", diag = TRUE, upper = TRUE, binary = TRUE)
+print(pref.db)
+dat.ward <- hclust(pref.db, method = "ward.D2")
+par(mar = c(1, 5, 2, 2) + 0.1)
+plot(dat.ward, main = "Jelly Preference",
+     ylab = "Squared Bray-Curtis Distance")
+```
+
+> ***Answer 4***:
+> Based on Bray-Curtis distance, the one who has the lowest dissimilarity with me is Ashish (0.5384615). However, when I plotted the Ward's cluster, I was clustered with trang which has 0.6363636 dissimilarity because Ashish has much lower dissimilarity with Anna. According to the dendrogram, our class room's preference is divided into two major clusters which have dissimilarity of about 1 to each other. 
+
+
+
+
+## SUBMITTING YOUR ASSIGNMENT
+Use Knitr to create a PDF of your completed `7.DiversitySynthesis_Worksheet.Rmd` document, push it to GitHub, and create a pull request.
+Please make sure your updated repo includes both the pdf and RMarkdown files.
+
+Unless otherwise noted, this assignment is due on **Wednesday, February 19^th^, 2025 at 12:00 PM (noon)**.
